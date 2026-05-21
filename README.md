@@ -15,11 +15,11 @@ The executable is created in the project root as `sched`.
 
 ```sh
 ./sched --demo
-./sched tests/workload1.txt --alg FCFS
-./sched tests/workload1.txt --alg SJF
-./sched tests/workload1.txt --alg SRTF
-./sched tests/workload1.txt --alg RR --q 3
-./sched tests/workload1.txt --alg SRTF --trace
+./sched tests/workloads/basic.txt --alg FCFS
+./sched tests/workloads/basic.txt --alg SJF
+./sched tests/workloads/basic.txt --alg SRTF
+./sched tests/workloads/basic.txt --alg RR --q 3
+./sched tests/workloads/basic.txt --alg SRTF --trace
 ```
 
 `--alg` is required unless `--demo` is used. `--q` is required for Round Robin and must be a positive integer. `--trace` prints step-by-step scheduling decisions.
@@ -102,3 +102,15 @@ total CPU busy time / makespan * 100%
 ```
 
 where makespan is the end time of the last Gantt segment.
+
+## Test Fixtures
+
+Workload examples are stored in `tests/workloads/`. Expected outputs for the
+basic workload are stored in `tests/expected/` and can be checked with `diff`:
+
+```sh
+diff -u tests/expected/basic_fcfs.out <(./sched tests/workloads/basic.txt --alg FCFS)
+diff -u tests/expected/basic_sjf.out <(./sched tests/workloads/basic.txt --alg SJF)
+diff -u tests/expected/basic_srtf.out <(./sched tests/workloads/basic.txt --alg SRTF)
+diff -u tests/expected/basic_rr_q3.out <(./sched tests/workloads/basic.txt --alg RR --q 3)
+```

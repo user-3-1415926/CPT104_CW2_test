@@ -1,0 +1,16 @@
+GANTT:
+0 | P1 | 2 | P2 | 4 | P3 | 5 | P2 | 7 | P4 | 11 | P1 | 16
+
+PID	Arrival	Burst	Start	Finish	Waiting	Turnaround	Response
+P1	0	7	0	16	9	16		0
+P2	2	4	2	7	1	5		0
+P3	4	1	4	5	0	1		0
+P4	6	4	7	11	1	5		1
+
+RESULT: OK
+ALG=SRTF
+AVG_WAIT=2.75
+AVG_TAT=6.75
+AVG_RESP=0.25
+CONTEXT_SWITCHES=5
+CPU_UTIL=100.00%
