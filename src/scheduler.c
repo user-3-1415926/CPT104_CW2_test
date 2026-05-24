@@ -2,6 +2,7 @@
 
 #include "fcfs.h"
 #include "metrics.h"
+#include "priority.h"
 #include "rr.h"
 #include "sjf.h"
 #include "srtf.h"
@@ -30,6 +31,8 @@ const char *algorithm_name(Algorithm alg) {
             return "SRTF";
         case ALG_RR:
             return "RR";
+        case ALG_PRIORITY:
+            return "PRIORITY";
     }
     return "UNKNOWN";
 }
@@ -47,7 +50,10 @@ Algorithm parse_algorithm(const char *text) {
     if (same_text(text, "RR")) {
         return ALG_RR;
     }
-    die("unknown algorithm; use FCFS, SJF, SRTF, or RR");
+    if (same_text(text, "PRIORITY") || same_text(text, "PRI")) {
+        return ALG_PRIORITY;
+    }
+    die("unknown algorithm; use FCFS, SJF, SRTF, RR, or PRIORITY");
     return ALG_FCFS;
 }
 
@@ -72,6 +78,8 @@ void run_algorithm(const Process *base, int n, Algorithm alg, int quantum, int t
         run_sjf(p, n, &timeline, trace);
     } else if (alg == ALG_SRTF) {
         run_srtf(p, n, &timeline, trace);
+    } else if (alg == ALG_PRIORITY) {
+        run_priority(p, n, &timeline, trace);
     } else {
         run_rr(p, n, quantum, &timeline, trace);
     }

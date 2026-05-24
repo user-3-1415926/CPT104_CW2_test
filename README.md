@@ -5,8 +5,7 @@ This project implements a CPU scheduling simulator in C for CPT104 Coursework 2.
 ## Build
 
 ```sh
-make clean
-make
+make clean && make
 ```
 
 The executable is created in the project root as `sched`.
@@ -19,6 +18,7 @@ The executable is created in the project root as `sched`.
 ./sched tests/workloads/basic.txt --alg SJF
 ./sched tests/workloads/basic.txt --alg SRTF
 ./sched tests/workloads/basic.txt --alg RR --q 3
+./sched tests/workloads/priority_aging.txt --alg PRIORITY
 ./sched tests/workloads/basic.txt --alg SRTF --trace
 ```
 
@@ -54,6 +54,8 @@ SRTF  - Shortest Remaining Time First, preemptive
 RR    - Round Robin, preemptive
 ```
 
+The project also includes `PRIORITY` as an optional bonus algorithm with aging.
+
 ## Tie-Breaking Rules
 
 The simulator uses deterministic tie-breaking:
@@ -69,7 +71,12 @@ Algorithm-specific comparisons are:
 SJF   compares burst time first, then applies the tie-break rules.
 SRTF  compares remaining time first, then applies the tie-break rules.
 RR    uses a FIFO ready queue. Processes arriving at the same time are enqueued by PID order.
+PRIORITY compares effective priority first, then applies the tie-break rules.
 ```
+
+For `PRIORITY`, every workload line must include the optional priority field.
+Smaller priority numbers run first. Aging improves a waiting process by reducing
+its effective priority by 1 for every 5 time units waited.
 
 ## Context Switch Definition
 
@@ -103,14 +110,54 @@ total CPU busy time / makespan * 100%
 
 where makespan is the end time of the last Gantt segment.
 
-## Test Fixtures
+## Testing
 
-Workload examples are stored in `tests/workloads/`. Expected outputs for the
-basic workload are stored in `tests/expected/` and can be checked with `diff`:
+Compile first:
 
 ```sh
-diff -u tests/expected/basic_fcfs.out <(./sched tests/workloads/basic.txt --alg FCFS)
-diff -u tests/expected/basic_sjf.out <(./sched tests/workloads/basic.txt --alg SJF)
-diff -u tests/expected/basic_srtf.out <(./sched tests/workloads/basic.txt --alg SRTF)
-diff -u tests/expected/basic_rr_q3.out <(./sched tests/workloads/basic.txt --alg RR --q 3)
+make clean && make
 ```
+
+Required algorithm tests:
+
+```sh
+./sched tests/workloads/basic.txt --alg FCFS
+./sched tests/workloads/basic.txt --alg SJF
+./sched tests/workloads/basic.txt --alg SRTF
+./sched tests/workloads/basic.txt --alg RR --q 3
+```
+
+Edge case tests:
+
+```sh
+./sched tests/workloads/idle.txt --alg SRTF
+./sched tests/workloads/same_arrival.txt --alg RR --q 2
+./sched tests/workloads/same_burst.txt --alg SJF
+./sched tests/workloads/rr_quantum.txt --alg RR --q 1
+./sched tests/workloads/srtf_preempt.txt --alg SRTF
+```
+
+Invalid input test:
+
+```sh
+./sched tests/workloads/invalid_workload.txt --alg FCFS
+```
+
+This test is expected to fail with a clear error message and a non-zero exit code.
+
+Optional bonus priority test:
+
+```sh
+./sched tests/workloads/priority_aging.txt --alg PRIORITY
+```
+
+| Test file | Purpose |
+|---|---|
+| basic.txt | Normal scheduling case |
+| idle.txt | CPU idle period |
+| same_arrival.txt | Same arrival time and PID tie-breaking |
+| same_burst.txt | Equal burst time tie-breaking |
+| rr_quantum.txt | Round Robin quantum behavior |
+| srtf_preempt.txt | SRTF preemption |
+| invalid_workload.txt | Parser error handling |
+| priority_aging.txt | Bonus priority aging test |

@@ -37,36 +37,52 @@ static int makespan(const Timeline *timeline) {
     return timeline->items[timeline->count - 1].end;
 }
 
-void print_results(Process *p, int n, const Timeline *timeline, Algorithm alg) {
+static Result calculate_result(Process *p, int n, const Timeline *timeline) {
+    Result result;
     double total_wait = 0.0;
     double total_tat = 0.0;
     double total_resp = 0.0;
-    int switches = count_context_switches(timeline);
-    int busy = total_busy_time(timeline);
-    int span = makespan(timeline);
-    double cpu_util = span > 0 ? ((double)busy / (double)span) * 100.0 : 0.0;
+
+    for (int i = 0; i < n; i++) {
+        p[i].turnaround = p[i].finish - p[i].arrival;
+        p[i].waiting = p[i].turnaround - p[i].burst;
+        p[i].response = p[i].start - p[i].arrival;
+        total_wait += p[i].waiting;
+        total_tat += p[i].turnaround;
+        total_resp += p[i].response;
+    }
+
+    result.segments = timeline->items;
+    result.segment_count = timeline->count;
+    result.total_busy_time = total_busy_time(timeline);
+    result.makespan = makespan(timeline);
+    result.context_switches = count_context_switches(timeline);
+    result.cpu_util = result.makespan > 0 ?
+        ((double)result.total_busy_time / (double)result.makespan) * 100.0 : 0.0;
+    result.avg_waiting = total_wait / n;
+    result.avg_turnaround = total_tat / n;
+    result.avg_response = total_resp / n;
+    return result;
+}
+
+void print_results(Process *p, int n, const Timeline *timeline, Algorithm alg) {
+    Result result = calculate_result(p, n, timeline);
 
     sort_for_output(p, n);
     print_gantt(timeline);
     printf("\n");
     printf("PID\tArrival\tBurst\tStart\tFinish\tWaiting\tTurnaround\tResponse\n");
     for (int i = 0; i < n; i++) {
-        int turnaround = p[i].finish - p[i].arrival;
-        int waiting = turnaround - p[i].burst;
-        int response = p[i].start - p[i].arrival;
-        total_wait += waiting;
-        total_tat += turnaround;
-        total_resp += response;
         printf("%s\t%d\t%d\t%d\t%d\t%d\t%d\t\t%d\n",
                p[i].pid, p[i].arrival, p[i].burst, p[i].start, p[i].finish,
-               waiting, turnaround, response);
+               p[i].waiting, p[i].turnaround, p[i].response);
     }
     printf("\n");
     printf("RESULT: OK\n");
     printf("ALG=%s\n", algorithm_name(alg));
-    printf("AVG_WAIT=%.2f\n", total_wait / n);
-    printf("AVG_TAT=%.2f\n", total_tat / n);
-    printf("AVG_RESP=%.2f\n", total_resp / n);
-    printf("CONTEXT_SWITCHES=%d\n", switches);
-    printf("CPU_UTIL=%.2f%%\n", cpu_util);
+    printf("AVG_WAIT=%.2f\n", result.avg_waiting);
+    printf("AVG_TAT=%.2f\n", result.avg_turnaround);
+    printf("AVG_RESP=%.2f\n", result.avg_response);
+    printf("CONTEXT_SWITCHES=%d\n", result.context_switches);
+    printf("CPU_UTIL=%.2f%%\n", result.cpu_util);
 }

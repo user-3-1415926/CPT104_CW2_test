@@ -9,10 +9,10 @@
 
 static void run_demo(void) {
     Process demo[] = {
-        {"P1", 0, 7, 0, 0, 7, 0, 0, -1, -1, 0},
-        {"P2", 2, 4, 0, 0, 4, 0, 0, -1, -1, 0},
-        {"P3", 4, 1, 0, 0, 1, 0, 0, -1, -1, 0},
-        {"P4", 6, 4, 0, 0, 4, 0, 0, -1, -1, 0}
+        {.pid = "P1", .arrival = 0, .burst = 7, .priority = 4, .has_priority = 1},
+        {.pid = "P2", .arrival = 2, .burst = 4, .priority = 2, .has_priority = 1},
+        {.pid = "P3", .arrival = 4, .burst = 1, .priority = 1, .has_priority = 1},
+        {.pid = "P4", .arrival = 6, .burst = 4, .priority = 3, .has_priority = 1}
     };
     int n = (int)(sizeof(demo) / sizeof(demo[0]));
 
@@ -24,6 +24,8 @@ static void run_demo(void) {
     run_algorithm(demo, n, ALG_SRTF, 0, 0);
     printf("\n=== DEMO: RR q=3 ===\n");
     run_algorithm(demo, n, ALG_RR, 3, 0);
+    printf("\n=== DEMO: PRIORITY with aging ===\n");
+    run_algorithm(demo, n, ALG_PRIORITY, 0, 0);
 }
 
 static void usage(void) {
@@ -33,6 +35,7 @@ static void usage(void) {
     printf("  ./sched <workload> --alg SJF\n");
     printf("  ./sched <workload> --alg SRTF [--trace]\n");
     printf("  ./sched <workload> --alg RR --q <quantum> [--trace]\n");
+    printf("  ./sched <workload> --alg PRIORITY [--trace]\n");
 }
 
 int cli_run(int argc, char *argv[]) {

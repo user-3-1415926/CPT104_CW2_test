@@ -1,3 +1,4 @@
 sched
 *.o
 *.dSYM/
+.DS_Store

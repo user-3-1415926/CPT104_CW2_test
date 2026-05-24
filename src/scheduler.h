@@ -8,7 +8,8 @@ typedef enum {
     ALG_FCFS,
     ALG_SJF,
     ALG_SRTF,
-    ALG_RR
+    ALG_RR,
+    ALG_PRIORITY
 } Algorithm;
 
 const char *algorithm_name(Algorithm alg);

@@ -14,45 +14,40 @@ void die_line(int line_no, const char *message) {
     exit(EXIT_FAILURE);
 }
 
-static int pid_cmp(const Process *a, const Process *b) {
-    return strcmp(a->pid, b->pid);
-}
-
 int ready_tie_less(const Process *a, const Process *b) {
-    if (a->arrival != b->arrival) {
-        return a->arrival < b->arrival;
-    }
-    return pid_cmp(a, b) < 0;
-}
-
-Process *copy_processes(const Process *processes, int n) {
-    Process *copy = malloc((size_t)n * sizeof(Process));
-    if (copy == NULL) {
-        die("memory allocation failed");
-    }
-    memcpy(copy, processes, (size_t)n * sizeof(Process));
-    for (int i = 0; i < n; i++) {
-        copy[i].remaining = copy[i].burst;
-        copy[i].started = 0;
-        copy[i].finished = 0;
-        copy[i].start = -1;
-        copy[i].finish = -1;
-        copy[i].queued = 0;
-    }
-    return copy;
-}
-
-static int process_order_less(const Process *a, const Process *b) {
     if (a->arrival != b->arrival) {
         return a->arrival < b->arrival;
     }
     return strcmp(a->pid, b->pid) < 0;
 }
 
+Process *copy_processes(const Process *processes, int n) {
+    Process *p = malloc((size_t)n * sizeof(Process));
+    if (p == NULL) {
+        die("memory allocation failed");
+    }
+
+    memcpy(p, processes, (size_t)n * sizeof(Process));
+    for (int i = 0; i < n; i++) {
+        p[i].remaining = p[i].burst;
+        p[i].started = 0;
+        p[i].finished = 0;
+        p[i].start = -1;
+        p[i].finish = -1;
+        p[i].waiting = 0;
+        p[i].turnaround = 0;
+        p[i].response = 0;
+        p[i].completed = 0;
+        p[i].queued = 0;
+    }
+    return p;
+}
+
 void sort_for_output(Process *p, int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
-            if (!process_order_less(&p[j], &p[j + 1])) {
+            if (p[j].arrival > p[j + 1].arrival ||
+                (p[j].arrival == p[j + 1].arrival && strcmp(p[j].pid, p[j + 1].pid) > 0)) {
                 Process tmp = p[j];
                 p[j] = p[j + 1];
                 p[j + 1] = tmp;

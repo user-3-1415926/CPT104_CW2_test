@@ -8,6 +8,7 @@ static int select_srtf(const Process *p, int n, int time) {
     int best = -1;
     for (int i = 0; i < n; i++) {
         if (!p[i].finished && p[i].arrival <= time && p[i].remaining > 0) {
+            /* SRTF chooses the shortest remaining time; ties use arrival then PID. */
             if (best == -1 ||
                 p[i].remaining < p[best].remaining ||
                 (p[i].remaining == p[best].remaining && ready_tie_less(&p[i], &p[best]))) {
@@ -53,6 +54,7 @@ void run_srtf(Process *p, int n, Timeline *timeline, int trace) {
         if (p[selected].remaining == 0) {
             p[selected].finish = time;
             p[selected].finished = 1;
+            p[selected].completed = 1;
             completed++;
         }
     }

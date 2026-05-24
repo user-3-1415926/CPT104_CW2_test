@@ -47,6 +47,7 @@ void run_sjf(Process *p, int n, Timeline *timeline, int trace) {
         p[selected].remaining = 0;
         p[selected].finish = time;
         p[selected].finished = 1;
+        p[selected].completed = 1;
         completed++;
     }
 }
