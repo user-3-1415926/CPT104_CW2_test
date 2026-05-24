@@ -2,6 +2,17 @@
 
 ## 1 Design and OS Concepts
 
+### Program Structure
+
+- `main.c` controls the main program flow.
+- `cli.c` parses command-line arguments.
+- `parser.c` reads and validates workload files.
+- `scheduler.c` dispatches to the selected algorithm.
+- `fcfs.c`, `sjf.c`, `srtf.c`, and `rr.c` implement the required algorithms.
+- `priority.c` implements priority scheduling with aging.
+- `gantt.c` stores and prints CPU timeline segments.
+- `metrics.c` calculates waiting time, turnaround time, response time, averages, and CPU utilisation.
+
 ### FCFS
 
 My understanding:
@@ -83,7 +94,6 @@ In my program:
 
 My understanding:
 
-- This is a bonus feature.
 - Smaller priority number means higher priority.
 - Aging helps reduce starvation.
 - A process that waits longer can get a better effective priority.
@@ -93,25 +103,46 @@ In my program:
 - It is selected using `--alg PRIORITY`.
 - Every workload line must include a priority value.
 - The effective priority improves after waiting.
-- This is not part of the minimum required algorithms.
 
 ### Tie-Breaking
 
-Tie-breaking flow:
+FCFS tie-breaking:
+
+```text
+FCFS selection
+        |
+        v
+Compare arrival time
+        |
+        v
+Tie?
+        |
+        +-- No --> Select earlier arrival
+        |
+        +-- Yes
+              |
+              v
+      Smaller PID lexicographic order
+              |
+              v
+          Select process
+```
+
+SJF, SRTF, and Priority tie-breaking:
 
 ```text
 Scheduling choice
         |
         v
 Compare main rule
-FCFS: arrival time
 SJF: burst time
 SRTF: remaining time
+PRIORITY: effective priority
         |
         v
 Tie?
         |
-        +-- No --> Select process
+        +-- No --> Select best process
         |
         +-- Yes
               |
@@ -286,8 +317,7 @@ This checks:
 
 `priority_aging.txt`
 -> PRIORITY
--> bonus only
--> check priority aging behavior
+-> priority scheduling with aging
 
 ### Metric Example
 
@@ -357,4 +387,4 @@ I verified the code by:
 - Checking Gantt charts.
 - Checking waiting, turnaround, and response time.
 - Testing invalid input.
-- Running the bonus priority test separately.
+- Running the priority scheduling test separately.

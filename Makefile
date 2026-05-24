@@ -12,6 +12,7 @@ SRC = \
 	src/sjf.c \
 	src/srtf.c \
 	src/rr.c \
+	src/priority.c \
 	src/gantt.c \
 	src/metrics.c
 

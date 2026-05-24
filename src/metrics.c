@@ -10,6 +10,7 @@ static int count_context_switches(const Timeline *timeline) {
     for (int i = 0; i < timeline->count; i++) {
         const char *label = timeline->items[i].label;
         if (strcmp(label, IDLE_LABEL) == 0) {
+            last_process = NULL;
             continue;
         }
         if (last_process != NULL && strcmp(last_process, label) != 0) {

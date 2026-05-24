@@ -18,8 +18,8 @@ The executable is created in the project root as `sched`.
 ./sched tests/workloads/basic.txt --alg SJF
 ./sched tests/workloads/basic.txt --alg SRTF
 ./sched tests/workloads/basic.txt --alg RR --q 3
-./sched tests/workloads/priority_aging.txt --alg PRIORITY
 ./sched tests/workloads/basic.txt --alg SRTF --trace
+./sched tests/workloads/priority_aging.txt --alg PRIORITY
 ```
 
 `--alg` is required unless `--demo` is used. `--q` is required for Round Robin and must be a positive integer. `--trace` prints step-by-step scheduling decisions.
@@ -41,7 +41,7 @@ P3 4 1
 P4 6 4
 ```
 
-Blank lines are ignored. Lines starting with `#` are ignored. Invalid lines print a clear error and exit with a non-zero status.
+Blank lines are ignored. Lines starting with `#` are ignored. The optional `PRIORITY` value is used by the `PRIORITY` algorithm and ignored by FCFS, SJF, SRTF, and RR. Invalid lines print a clear error and exit with a non-zero status.
 
 ## Implemented Algorithms
 
@@ -52,9 +52,8 @@ FCFS  - First Come First Served, non-preemptive
 SJF   - Shortest Job First, non-preemptive
 SRTF  - Shortest Remaining Time First, preemptive
 RR    - Round Robin, preemptive
+PRIORITY - Priority Scheduling with Aging
 ```
-
-The project also includes `PRIORITY` as an optional bonus algorithm with aging.
 
 ## Tie-Breaking Rules
 
@@ -74,7 +73,7 @@ RR    uses a FIFO ready queue. Processes arriving at the same time are enqueued 
 PRIORITY compares effective priority first, then applies the tie-break rules.
 ```
 
-For `PRIORITY`, every workload line must include the optional priority field.
+For `PRIORITY`, every workload line must include the priority field.
 Smaller priority numbers run first. Aging improves a waiting process by reducing
 its effective priority by 1 for every 5 time units waited.
 
@@ -112,6 +111,8 @@ where makespan is the end time of the last Gantt segment.
 
 ## Testing
 
+Test input files are stored in `tests/workloads/`.
+
 Compile first:
 
 ```sh
@@ -145,7 +146,7 @@ Invalid input test:
 
 This test is expected to fail with a clear error message and a non-zero exit code.
 
-Optional bonus priority test:
+Priority scheduling test:
 
 ```sh
 ./sched tests/workloads/priority_aging.txt --alg PRIORITY
@@ -160,4 +161,6 @@ Optional bonus priority test:
 | rr_quantum.txt | Round Robin quantum behavior |
 | srtf_preempt.txt | SRTF preemption |
 | invalid_workload.txt | Parser error handling |
-| priority_aging.txt | Bonus priority aging test |
+| priority_aging.txt | Priority scheduling with aging |
+
+The invalid workload contains a negative arrival time, a zero burst time, and a malformed line. The program stops at the first invalid line and exits with an error.
