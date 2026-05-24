@@ -71,15 +71,14 @@ void run_priority(Process *p, int n, Timeline *timeline, int trace) {
         p[selected].start = time;
         if (trace) {
             printf("TRACE %d-%d: %s priority=%d effective_priority=%d\n",
-                   time, time + p[selected].burst, p[selected].pid,
-                   p[selected].priority, effective);
+                time, time + p[selected].burst, p[selected].pid,
+                p[selected].priority, effective);
         }
         timeline_add(timeline, p[selected].pid, time, time + p[selected].burst);
         time += p[selected].burst;
         p[selected].remaining = 0;
         p[selected].finish = time;
         p[selected].finished = 1;
-        p[selected].completed = 1;
         completed++;
     }
 }

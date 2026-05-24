@@ -64,7 +64,6 @@ static void enqueue_arrivals_up_to(Process *p, int n, int time, Queue *queue) {
         int best = -1;
         for (int i = 0; i < n; i++) {
             if (!p[i].queued && !p[i].finished && p[i].arrival <= time) {
-                /* Processes that arrive together are inserted by PID order. */
                 if (best == -1 || unqueued_arrival_less(p, i, best)) {
                     best = i;
                 }
@@ -132,12 +131,10 @@ void run_rr(Process *p, int n, int quantum, Timeline *timeline, int trace) {
         p[selected].remaining -= slice;
         time = end;
 
-        /* Add all arrivals up to the end of this quantum before re-queueing it. */
         enqueue_arrivals_up_to(p, n, time, &queue);
         if (p[selected].remaining == 0) {
             p[selected].finish = time;
             p[selected].finished = 1;
-            p[selected].completed = 1;
             completed++;
         } else {
             queue_push(&queue, selected);
