@@ -19,6 +19,8 @@ void timeline_add(Timeline *timeline, const char *label, int start, int end) {
     if (end <= start) {
         return;
     }
+
+    // keep adjacent intervals compact when the label is unchanged
     if (timeline->count > 0) {
         Segment *last = &timeline->items[timeline->count - 1];
         if (last->end == start && strcmp(last->label, label) == 0) {
@@ -27,6 +29,7 @@ void timeline_add(Timeline *timeline, const char *label, int start, int end) {
         }
     }
     if (timeline->count == timeline->capacity) {
+        // allocate more room for additional timeline intervals
         timeline->capacity *= 2;
         timeline->items = realloc(timeline->items, (size_t)timeline->capacity * sizeof(Segment));
         if (timeline->items == NULL) {

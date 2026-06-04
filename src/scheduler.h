@@ -4,6 +4,9 @@
 #include "gantt.h"
 #include "process.h"
 
+/**
+ * Algorithm values accepted by the command line parser.
+ */
 typedef enum {
     ALG_FCFS,
     ALG_SJF,

@@ -1,4 +1,5 @@
 sched
+tests/test_runner
 *.o
 *.dSYM/
 .DS_Store

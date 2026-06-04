@@ -1,110 +1,130 @@
-# CPT104 CW2 Design, Testing, and AI Usage
+# CPU Scheduling Simulator Report
 
 ## 1 Design and OS Concepts
 
 ### Program Structure
 
-- `main.c` controls the main program flow.
-- `cli.c` parses command-line arguments.
-- `parser.c` reads and validates workload files.
-- `scheduler.c` dispatches to the selected algorithm.
-- `fcfs.c`, `sjf.c`, `srtf.c`, and `rr.c` implement the required algorithms.
-- `priority.c` implements priority scheduling with aging.
-- `gantt.c` stores and prints CPU timeline segments.
-- `metrics.c` calculates waiting time, turnaround time, response time, averages, and CPU utilisation.
+```text
+.
+├── src
+│   ├── main.c                 - program entry point
+│   ├── process.c/h            - process data structure and helper functions
+│   ├── parser.c/h             - workload txt input and validation
+│   ├── scheduler.c/h          - algorithm selection and shared scheduler helpers
+│   ├── gantt.c/h              - Gantt chart timeline structure and output
+│   ├── metrics.c/h            - waiting, turnaround, response and CPU statistics
+│   ├── cli.c/h                - command-line input handling
+│   └── algorithm/
+│       ├── fcfs.c/h           - FCFS implementation
+│       ├── sjf.c/h            - SJF implementation
+│       ├── srtf.c/h           - SRTF implementation
+│       ├── rr.c/h             - Round Robin implementation
+│       └── priority.c/h       - Priority scheduling with aging
+├── tests
+│   ├── test_runner.c          - small automated test runner
+│   ├── basic.txt              - normal scheduling workload
+│   ├── idle.txt               - workload with CPU idle time
+│   ├── same_arrival.txt       - same-arrival workload
+│   ├── same_burst.txt         - same-burst workload
+│   ├── rr_quantum.txt         - Round Robin quantum workload
+│   ├── srtf_preempt.txt       - SRTF preemption workload
+│   ├── invalid_workload.txt   - invalid input workload
+│   └── priority_aging.txt     - priority aging workload
+├── README.md
+├── REPORT.md
+└── Makefile
+```
 
 ### FCFS
 
 My understanding:
 
-- Non-preemptive.
-- Processes run in arrival order.
-- If a long process arrives early, later short processes must wait.
-- This can increase average waiting time.
-- Simple, but not always efficient.
+- FCFS is the most direct scheduling rule in this simulator.
+- The earliest arrived ready process is selected first.
+- After selection, the process keeps the CPU until its burst is complete.
+- This makes the result simple to trace, but it can perform badly when a long process arrives before several short ones.
 
 In my program:
 
-- I select processes by arrival time.
-- If arrival time is the same, I use PID lexicographic order.
-- Once a process starts, it runs until its burst time finishes.
-- If no process has arrived, I add an `IDLE` segment.
-- I record start time and finish time.
-- Waiting, turnaround, and response time are calculated from the final result.
+- I scan the process list for an arrived unfinished process with the earliest arrival time.
+- PID order is used when two processes arrive together, so repeated runs produce the same schedule.
+- If the CPU has nothing ready to run, the timeline records `IDLE` and time moves to the next arrival.
+- For the selected process, I record its start time, run the whole burst, then record its finish time.
+- The metrics are not guessed inside FCFS; they are calculated later from the recorded start and finish values.
 
 ### SJF
 
 My understanding:
 
-- Non-preemptive.
-- The CPU chooses the shortest burst time from ready processes.
-- It can reduce average waiting time compared with FCFS.
-- It cannot interrupt a process after it starts.
-- A short process arriving later must wait until the current process finishes.
+- SJF is non-preemptive, but its choice is based on burst length instead of only arrival order.
+- When the CPU is free, the shortest ready job is preferred.
+- This can lower the average waiting time because small jobs are less likely to sit behind long jobs.
+- The weakness is that SJF cannot stop a process once it has started, even if a shorter process arrives later.
 
 In my program:
 
-- When the CPU is free, I scan all arrived and unfinished processes.
-- I select the process with the smallest burst time.
-- If burst times are equal, I apply tie-breaking.
-- Smaller arrival time is selected first.
-- If arrival time is also equal, smaller PID is selected.
-- If there is no ready process, I add an `IDLE` segment.
+- At each scheduling point, I check all processes that have arrived and are still unfinished.
+- The smallest burst value is the main selection rule.
+- If burst values are equal, I compare arrival time, then PID.
+- After a process is chosen, it runs to completion because this version of SJF is non-preemptive.
+- If no process is ready, an `IDLE` segment is added before the next decision.
 
 ### SRTF
 
 My understanding:
 
-- Preemptive version of SJF.
-- The CPU always runs the process with the shortest remaining time.
-- A newly arrived short process can interrupt the current process.
-- This can reduce waiting time for short jobs.
-- It can also increase context switches.
+- SRTF is the preemptive form of shortest-job scheduling.
+- Instead of comparing original burst time only, it compares remaining time.
+- A newly arrived process can preempt the current one if it has less work left.
+- This is useful for response and waiting time of short jobs, but it can increase the number of process changes.
 
 In my program:
 
-- I simulate time step by time step.
-- At each time unit, I check all arrived processes.
-- I choose the process with the smallest remaining time.
-- If another process becomes shorter, preemption happens.
-- I record start time only the first time a process gets the CPU.
-- Finish time is recorded when remaining time becomes 0.
+- I model SRTF in small time steps so that new arrivals can be considered immediately.
+- During each step, I select the arrived unfinished process with the lowest remaining time.
+- Equal remaining times are resolved by arrival time and then PID.
+- When a different process becomes the best choice, the timeline records a new segment.
+- A process start time is stored only once, on its first CPU allocation.
+- Finish time is stored when `remaining` becomes zero.
 
 ### Round Robin
 
 My understanding:
 
-- Preemptive.
-- Uses a FIFO ready queue.
-- Each process can run for at most one quantum.
-- If it is not finished, it goes back to the end of the queue.
-- It improves fairness and response time.
-- A very small quantum may create more context switches.
+- Round Robin uses a ready queue and a fixed time quantum.
+- Each process at the front of the queue gets a limited CPU turn.
+- If it finishes during the quantum, it leaves the queue.
+- If it still has remaining time, it is placed back at the tail.
+- This makes the algorithm fair, although a very small quantum can create many switches.
 
 In my program:
 
-- I use a ready queue.
-- Processes are enqueued when they arrive.
-- If several processes arrive at the same time, I enqueue them by PID order.
-- The running process executes for `min(quantum, remaining time)`.
-- New arrivals during the time slice are added to the queue first.
-- If the running process is not finished, it is re-enqueued after those new arrivals.
+- I keep a ready queue of process indexes.
+- Arrived processes are inserted into the queue before the next process is selected.
+- Same-time arrivals are inserted in PID order to keep the result deterministic.
+- The running length is `min(quantum, remaining time)`.
+- After the slice, new arrivals are handled before requeueing the preempted process.
+- This ordering prevents the old process from cutting ahead of a process that arrived during its turn.
 
 ### Priority Scheduling With Aging
 
 My understanding:
 
-- Smaller priority number means higher priority.
-- Aging helps reduce starvation.
-- A process that waits longer can get a better effective priority.
+- Priority scheduling chooses according to a priority value rather than burst length or queue position.
+- In this program, a lower number means a higher priority.
+- Aging is added so that a process waiting for a long time can gradually become easier to select.
 
 In my program:
 
-- It is selected using `--alg PRIORITY`.
-- Every workload line must include a priority value.
-- The effective priority improves after waiting.
+- The user selects it with `--alg PRIORITY`.
+- Because priority is required for this algorithm, every workload row must include that field.
+- I calculate an effective priority from the original priority and the time already spent waiting.
+- The selected process then runs non-preemptively, and its completion time is recorded like FCFS and SJF.
 
 ### Tie-Breaking
+
+Tie-breaking is important because the same input should always create the same Gantt chart and the same metrics.
+Without a fixed rule, two processes with equal scheduling values could be chosen in different orders.
 
 FCFS tie-breaking:
 
@@ -135,9 +155,9 @@ Scheduling choice
         |
         v
 Compare main rule
-SJF: burst time
-SRTF: remaining time
-PRIORITY: effective priority
+SJF -> burst time
+SRTF -> remaining time
+PRIORITY -> effective priority
         |
         v
 Tie?
@@ -179,212 +199,161 @@ Context switch policy:
 Counted:
 
 ```text
-P1 -> P2     counted
-P2 -> P3     counted
+P1 -> P2     
+P2 -> P3     
 ```
 
 Not counted:
 
 ```text
-IDLE -> P1   not counted
-P1 -> IDLE   not counted
-P1 -> P1     not counted
+IDLE -> P1   
+P1 -> IDLE   
+P1 -> P1     
 ```
 
 Explanation:
 
-- I count a context switch only when the CPU changes from one process to another different process.
-- I do not count `IDLE` to process.
-- I do not count process to `IDLE`.
+- I define a context switch as a **direct change** from one process to a different process.
+- `IDLE` is treated as no process running, so `IDLE -> P1` is not counted.
+- `P1 -> IDLE` is also ignored.
+- Adjacent segments with the same PID are merged by the timeline, so they cannot create a fake switch.
 
 ### Tricky Scenario: Arrival During RR Time Slice
 
-Problem:
+A tricky case in Round Robin occurs when new processes arrive while another process is using its time quantum. If the running process has not finished after the quantum, the scheduler must decide whether the newly arrived processes or the old running process should be placed first in the ready queue.
 
-- A process is running.
-- Another process arrives during its quantum.
-- The queue order must stay fair.
-
-Example:
+In my program, newly arrived processes are added to the ready queue before the unfinished running process is requeued. For example, suppose `P1` is running, and `P2` and `P3` arrive during `P1`'s quantum. If `P1` is still not finished after the quantum, the queue after the quantum should be:
 
 ```text
-Running process: P1
-New arrival: P2
-P1 still not finished
+[P2, P3, P1]
 ```
 
-Correct order:
-
-- `P2` enters queue first.
-- `P1` goes back after `P2`.
-
-Queue example:
+instead of:
 
 ```text
-Before: [P1 running]
-During quantum: P2 arrives
-After quantum: [P2, P1]
+[P1, P2, P3]
 ```
 
-Program-style snippet:
+This means the processes that became ready during the time slice get their turn before the process that has just used the CPU. This keeps Round Robin fair and prevents the same process from receiving two close CPU turns.
 
-```c
-while (used < quantum && p[current].remaining > 0) {
-    run_one_time_unit(current);
-    time++;
-    used++;
-
-    add_new_arrivals(time, queue);
-}
-
-if (p[current].remaining > 0) {
-    enqueue(queue, current);
-}
-```
-
-Explanation:
-
-- New arrivals are added before the running process is re-enqueued.
-- This keeps FIFO order correct.
-- It prevents the same process from running again too early.
 
 ## 2 Testing Strategy
 
 ### Required Algorithm Tests
 
-I tested each required algorithm:
+I tested the required algorithms separately: FCFS, SJF, SRTF, RR
 
-```text
-FCFS
-SJF
-SRTF
-RR
-```
-
-I used `basic.txt` for normal scheduling behavior:
+I used `basic.txt` as the first normal-case workload:
 
 ```sh
-./sched tests/workloads/basic.txt --alg FCFS
-./sched tests/workloads/basic.txt --alg SJF
-./sched tests/workloads/basic.txt --alg SRTF
-./sched tests/workloads/basic.txt --alg RR --q 3
+./sched tests/basic.txt --alg FCFS
+./sched tests/basic.txt --alg SJF
+./sched tests/basic.txt --alg SRTF
+./sched tests/basic.txt --alg RR --q 3
 ```
 
 This checks:
-- Gantt chart output.
-- Start and finish times.
-- Waiting time.
-- Turnaround time.
-- Response time.
-- Average metrics.
+- Gantt chart order.
+- Start and finish values.
+- Waiting time calculation.
+- Turnaround time calculation.
+- Response time calculation.
+- Average metric output.
 
 ### Edge Case Testing
 
-`basic.txt`
--> FCFS, SJF, SRTF, RR
--> normal scheduling behavior
--> Gantt chart, finish time, average metrics
+`basic.txt` -> FCFS, SJF, SRTF, RR
 
-`idle.txt`
--> SRTF
--> CPU has no ready process
--> Gantt chart should contain `IDLE`
+- Normal scheduling behavior.
+- Gantt chart order should be correct.
+- Finish time and average metrics should match the expected result.
 
-`same_arrival.txt`
--> RR
--> multiple processes arrive at the same time
--> enqueue by PID order
+`idle.txt` -> SRTF
 
-`same_burst.txt`
--> SJF / SRTF
--> equal burst time
--> check tie-breaking
+- CPU has no ready process.
+- Gantt chart should contain `IDLE`.
 
-`rr_quantum.txt`
--> RR `q=1`
--> many time slices
--> check re-enqueueing and context switches
+`same_arrival.txt` -> RR
 
-`srtf_preempt.txt`
--> SRTF
--> shorter process arrives later
--> current process should be preempted
+- Multiple processes arrive at the same time.
+- Ready queue should enqueue them by PID order.
 
-`invalid_workload.txt`
--> parser
--> negative arrival, zero burst, malformed line
--> program should print error and exit non-zero
+`same_burst.txt` -> SJF / SRTF
 
-`priority_aging.txt`
--> PRIORITY
--> priority scheduling with aging
+- Processes have equal burst time.
+- Tie-breaking should still choose a deterministic process.
+
+`rr_quantum.txt` -> RR `q=1`
+
+- Many short time slices are created.
+- Re-enqueueing and context switch counting should be correct.
+
+`srtf_preempt.txt` -> SRTF
+
+- A shorter process arrives after another process has started.
+- The current process should be preempted.
+
+`invalid_workload.txt` -> parser
+
+- Workload includes negative arrival, zero burst, or malformed input.
+- Program should print an error and exit non-zero.
+
+`priority_aging.txt` -> PRIORITY
+
+- Processes use priority values.
+- Aging should improve waiting processes over time.
+
+### Automated Checking
+
+I designed a small C test runner in `tests/test_runner.c`.
+
+- `check_gantt_line()` checks that the Gantt chart order matches the expected timeline.
+- `check_summary_value()` checks summary values including `AVG_WAIT`, `AVG_TAT`, `AVG_RESP`, `CONTEXT_SWITCHES`, and `CPU_UTIL`.
+- `check_nonzero_exit()` checks that invalid workload input exits with an error.
+
+The test runner can be executed with:
+
+```sh
+make test
+```
 
 ### Metric Example
 
-Example process:
+I used hand calculation to verify selected metric values from the program output.
 
-```text
-PID = P2
-Arrival = 2
-Burst = 4
-Start = 7
-Finish = 11
-```
+The method was:
 
-Response:
+- Read `Arrival`, `Burst`, `Start`, and `Finish` from the output table.
+- Calculate `Response = Start - Arrival`.
+- Calculate `Turnaround = Finish - Arrival`.
+- Calculate `Waiting = Turnaround - Burst`.
+- Calculate `CPU_UTIL = total busy time / makespan * 100%`.
+- Compare these hand calculations with the values printed by the program.
 
-```text
-Response = Start - Arrival
-Response = 7 - 2 = 5
-```
+This helped confirm that the Gantt chart order and the computed metrics were consistent.
 
-Turnaround:
+### Observations
 
-```text
-Turnaround = Finish - Arrival
-Turnaround = 11 - 2 = 9
-```
-
-Waiting:
-
-```text
-Waiting = Turnaround - Burst
-Waiting = 9 - 4 = 5
-```
-
-CPU utilisation example:
-
-```text
-Busy time = 16
-Makespan = 16
-
-CPU_UTIL = Busy time / Makespan * 100
-CPU_UTIL = 16 / 16 * 100 = 100%
-```
-
-Average waiting time example:
-
-```text
-Waiting times = 0, 5, 7, 6
-AVG_WAIT = (0 + 5 + 7 + 6) / 4
-AVG_WAIT = 4.50
-```
+- In `basic.txt`, SJF gives a lower average waiting time than FCFS because it runs the shortest ready job after `P1`.
+- In `srtf_preempt.txt`, SRTF lets short jobs finish earlier, but the Gantt chart has more process changes.
+- In `rr_quantum.txt` with `q=1`, Round Robin gives quick first responses, but it creates many context switches.
+- Priority scheduling depends strongly on the priority values, and aging helps waiting processes become more competitive.
 
 ## 3 AI Usage Declaration
 
-I used AI as a support tool during this coursework.
+I used Codex as a supporting tool during this coursework.
 
 AI helped me with:
 
-- Suggesting debugging ideas.
-- Suggesting edge case test workloads.
-- Using Codex to help check the code logic and refactor part of the code.
+- Debugging directions.
+- Edge-case workload ideas.
+- Code logic review.
+- Report clarity and wording.
 
-I verified the code by:
+The design, implementation decisions, and final verification were completed by me. I verified the program myself by:
 
-- Compiling with `make`.
-- Running FCFS, SJF, SRTF, and RR.
-- Checking Gantt charts.
-- Checking waiting, turnaround, and response time.
-- Testing invalid input.
-- Running the priority scheduling test separately.
+- Building the project with `make`.
+- Running workload files for FCFS, SJF, SRTF, RR, and priority scheduling.
+- Checking the Gantt chart order.
+- Manually confirming selected waiting time, turnaround time, response time, and CPU utilisation values.
+- Testing invalid workload input.

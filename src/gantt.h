@@ -3,12 +3,18 @@
 
 #include "process.h"
 
+/**
+ * One continuous interval on the CPU timeline.
+ */
 typedef struct {
     char label[PID_LEN];
     int start;
     int end;
 } Segment;
 
+/**
+ * Resizable container for timeline intervals.
+ */
 typedef struct {
     Segment *items;
     int count;

@@ -9,6 +9,8 @@ static int count_context_switches(const Timeline *timeline) {
 
     for (int i = 0; i < timeline->count; i++) {
         const char *label = timeline->items[i].label;
+
+        // only transitions between real processes are counted
         if (strcmp(label, IDLE_LABEL) == 0) {
             last_process = NULL;
             continue;
@@ -51,6 +53,8 @@ void print_results(Process *p, int n, const Timeline *timeline, Algorithm alg) {
     print_gantt(timeline);
     printf("\n");
     printf("PID\tArrival\tBurst\tStart\tFinish\tWaiting\tTurnaround\tResponse\n");
+
+    // derive per-process statistics from the final start and finish times
     for (int i = 0; i < n; i++) {
         int turnaround = p[i].finish - p[i].arrival;
         int waiting = turnaround - p[i].burst;

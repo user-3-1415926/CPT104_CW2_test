@@ -13,6 +13,7 @@ typedef struct {
 } Queue;
 
 static void queue_init(Queue *queue, int capacity) {
+    // leave one extra slot for circular queue movement
     queue->capacity = capacity > 0 ? capacity + 1 : 1;
     queue->items = malloc((size_t)queue->capacity * sizeof(int));
     if (queue->items == NULL) {
@@ -56,13 +57,16 @@ static int unqueued_arrival_less(const Process *p, int a, int b) {
     if (p[a].arrival != p[b].arrival) {
         return p[a].arrival < p[b].arrival;
     }
+    // PID solve same-time arrivals 
     return strcmp(p[a].pid, p[b].pid) < 0;
 }
 
 static void enqueue_arrivals_up_to(Process *p, int n, int time, Queue *queue) {
     while (1) {
         int best = -1;
+
         for (int i = 0; i < n; i++) {
+            // enqueue newly available jobs in arrival order
             if (!p[i].queued && !p[i].finished && p[i].arrival <= time) {
                 if (best == -1 || unqueued_arrival_less(p, i, best)) {
                     best = i;
@@ -94,6 +98,10 @@ void run_rr(Process *p, int n, int quantum, Timeline *timeline, int trace) {
     int completed = 0;
     int time = 0;
 
+    if (trace) {
+        fprintf(stderr, "--- RR trace begins ---\n");
+    }
+
     queue_init(&queue, n + 1);
     while (completed < n) {
         int selected;
@@ -101,13 +109,15 @@ void run_rr(Process *p, int n, int quantum, Timeline *timeline, int trace) {
         int end;
 
         enqueue_arrivals_up_to(p, n, time, &queue);
+
+        // no process can run yet, jump to the next arrival
         if (queue_empty(&queue)) {
             int next = next_unfinished_arrival(p, n, time);
             if (next == -1) {
                 die("internal scheduling error");
             }
             if (trace) {
-                printf("TRACE %d-%d: IDLE\n", time, next);
+                fprintf(stderr, "[Time %4d] processor waits for next arrival\n", time);
             }
             timeline_add(timeline, IDLE_LABEL, time, next);
             time = next;
@@ -118,15 +128,18 @@ void run_rr(Process *p, int n, int quantum, Timeline *timeline, int trace) {
         slice = p[selected].remaining < quantum ? p[selected].remaining : quantum;
         end = time + slice;
 
+        // response time is based on the first CPU slice
         if (!p[selected].started) {
             p[selected].started = 1;
             p[selected].start = time;
         }
+
         if (trace) {
-            printf("TRACE %d-%d: %s slice=%d remaining_before=%d\n",
-                time, end, p[selected].pid, slice, p[selected].remaining
-            );
+            fprintf(stderr, "[Time %4d] %s runs for %d unit(s), remaining=%d\n",
+                time, p[selected].pid, slice, p[selected].remaining);
         }
+
+        // consume either a full quantum or the remaining work
         timeline_add(timeline, p[selected].pid, time, end);
         p[selected].remaining -= slice;
         time = end;
@@ -136,9 +149,17 @@ void run_rr(Process *p, int n, int quantum, Timeline *timeline, int trace) {
             p[selected].finish = time;
             p[selected].finished = 1;
             completed++;
+
+            if (trace) {
+                fprintf(stderr, "[Time %4d] %s completes\n", time, p[selected].pid);
+            }
         } else {
             queue_push(&queue, selected);
         }
     }
     queue_free(&queue);
+
+    if (trace) {
+        fprintf(stderr, "--- RR trace ends ---\n\n");
+    }
 }

@@ -4,22 +4,27 @@
 #define PID_LEN 32
 #define IDLE_LABEL "IDLE"
 
+/**
+ * Stores one workload entry and the values produced by a scheduler.
+ */
 typedef struct {
-    char pid[PID_LEN];  /* process id */
-    int arrival;        /* arrival time */
-    int burst;          /* burst time */
-    int priority;       /* priority value */
-    int has_priority;   /* 1 if priority is provided */
-    int remaining;      /* remaining burst time */
-    int started;        /* 1 after the first run */
-    int finished;       /* 1 after completion */
-    int start;          /* first start time */
-    int finish;         /* completion time */
-    int waiting;        /* turnaround - burst */
-    int turnaround;     /* finish - arrival */
-    int response;       /* start - arrival */
-    int completed;      /* same meaning as finished, kept for coursework wording */
-    int queued;         /* used by RR ready queue */
+    char pid[PID_LEN];
+    int arrival;
+    int burst;
+    int priority;
+    int has_priority;
+
+    // runtime state
+    int remaining;      // remaining burst time
+    int started;        // 1 after the first run
+    int finished;       // 1 after completion
+    int start;          // first start time
+    int finish;         // completion time
+    int waiting;        // turnaround - burst
+    int turnaround;     // finish - arrival
+    int response;       // start - arrival
+    int completed;      // same meaning as finished, kept for coursework wording
+    int queued;         // used by RR ready queue
 } Process;
 
 void die(const char *message);

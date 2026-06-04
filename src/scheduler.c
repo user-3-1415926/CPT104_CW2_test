@@ -1,11 +1,11 @@
 #include "scheduler.h"
 
-#include "fcfs.h"
+#include "algorithm/fcfs.h"
 #include "metrics.h"
-#include "priority.h"
-#include "rr.h"
-#include "sjf.h"
-#include "srtf.h"
+#include "algorithm/priority.h"
+#include "algorithm/rr.h"
+#include "algorithm/sjf.h"
+#include "algorithm/srtf.h"
 
 #include <ctype.h>
 #include <stdlib.h>

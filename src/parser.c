@@ -9,12 +9,16 @@
 
 static char *trim(char *line) {
     char *end;
+
+    // move past whitespace at the front
     while (isspace((unsigned char)*line)) {
         line++;
     }
     if (*line == '\0') {
         return line;
     }
+
+    // cut off whitespace at the end
     end = line + strlen(line) - 1;
     while (end > line && isspace((unsigned char)*end)) {
         *end = '\0';
@@ -35,6 +39,7 @@ static int parse_int_token(const char *text, int *out) {
 
 static void add_process(Process **processes, int *count, int *capacity, const Process *process) {
     if (*count == *capacity) {
+        // grow storage before adding more workload entries
         *capacity *= 2;
         *processes = realloc(*processes, (size_t)*capacity * sizeof(Process));
         if (*processes == NULL) {
@@ -75,6 +80,8 @@ Process *read_workload(const char *path, int *out_count) {
 
         line_no++;
         text = trim(line);
+
+        // ignore blank input and comment-only rows
         if (*text == '\0' || *text == '#') {
             continue;
         }
@@ -101,6 +108,8 @@ Process *read_workload(const char *path, int *out_count) {
         if (p.burst <= 0) {
             die_line(line_no, "BURST must be a positive integer");
         }
+
+        // reject repeated process names
         for (int i = 0; i < count; i++) {
             if (strcmp(processes[i].pid, p.pid) == 0) {
                 die_line(line_no, "duplicate PID");

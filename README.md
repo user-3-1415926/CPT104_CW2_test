@@ -2,6 +2,39 @@
 
 This project implements a CPU scheduling simulator in C for CPT104 Coursework 2.
 
+## Project Structure
+
+```text
+.
+├── src
+│   ├── main.c                 - program entry point
+│   ├── process.c/h            - process data structure and helper functions
+│   ├── parser.c/h             - workload txt input and validation
+│   ├── scheduler.c/h          - algorithm selection and shared scheduler helpers
+│   ├── gantt.c/h              - Gantt chart timeline structure and output
+│   ├── metrics.c/h            - waiting, turnaround, response and CPU statistics
+│   ├── cli.c/h                - command-line input handling
+│   └── algorithm/
+│       ├── fcfs.c/h           - FCFS implementation
+│       ├── sjf.c/h            - SJF implementation
+│       ├── srtf.c/h           - SRTF implementation
+│       ├── rr.c/h             - Round Robin implementation
+│       └── priority.c/h       - Priority scheduling with aging
+├── tests
+│   ├── test_runner.c          - small automated test runner
+│   ├── basic.txt              - normal scheduling workload
+│   ├── idle.txt               - workload with CPU idle time
+│   ├── same_arrival.txt       - same-arrival workload
+│   ├── same_burst.txt         - same-burst workload
+│   ├── rr_quantum.txt         - Round Robin quantum workload
+│   ├── srtf_preempt.txt       - SRTF preemption workload
+│   ├── invalid_workload.txt   - invalid input workload
+│   └── priority_aging.txt     - priority aging workload
+├── README.md
+├── REPORT.md
+└── Makefile
+```
+
 ## Build
 
 ```sh
@@ -14,12 +47,12 @@ The executable is created in the project root as `sched`.
 
 ```sh
 ./sched --demo
-./sched tests/workloads/basic.txt --alg FCFS
-./sched tests/workloads/basic.txt --alg SJF
-./sched tests/workloads/basic.txt --alg SRTF
-./sched tests/workloads/basic.txt --alg RR --q 3
-./sched tests/workloads/basic.txt --alg SRTF --trace
-./sched tests/workloads/priority_aging.txt --alg PRIORITY
+./sched tests/basic.txt --alg FCFS
+./sched tests/basic.txt --alg SJF
+./sched tests/basic.txt --alg SRTF
+./sched tests/basic.txt --alg RR --q 3
+./sched tests/basic.txt --alg SRTF --trace
+./sched tests/priority_aging.txt --alg PRIORITY
 ```
 
 `--alg` is required unless `--demo` is used. `--q` is required for Round Robin and must be a positive integer. `--trace` prints step-by-step scheduling decisions.
@@ -111,7 +144,7 @@ where makespan is the end time of the last Gantt segment.
 
 ## Testing
 
-Test input files are stored in `tests/workloads/`.
+Test input files are stored directly in `tests/`.
 
 Compile first:
 
@@ -119,29 +152,37 @@ Compile first:
 make clean && make
 ```
 
+To run the automated checks:
+
+```sh
+make test
+```
+
+The test runner checks selected Gantt chart lines, summary values, and invalid input handling.
+
 Required algorithm tests:
 
 ```sh
-./sched tests/workloads/basic.txt --alg FCFS
-./sched tests/workloads/basic.txt --alg SJF
-./sched tests/workloads/basic.txt --alg SRTF
-./sched tests/workloads/basic.txt --alg RR --q 3
+./sched tests/basic.txt --alg FCFS
+./sched tests/basic.txt --alg SJF
+./sched tests/basic.txt --alg SRTF
+./sched tests/basic.txt --alg RR --q 3
 ```
 
 Edge case tests:
 
 ```sh
-./sched tests/workloads/idle.txt --alg SRTF
-./sched tests/workloads/same_arrival.txt --alg RR --q 2
-./sched tests/workloads/same_burst.txt --alg SJF
-./sched tests/workloads/rr_quantum.txt --alg RR --q 1
-./sched tests/workloads/srtf_preempt.txt --alg SRTF
+./sched tests/idle.txt --alg SRTF
+./sched tests/same_arrival.txt --alg RR --q 2
+./sched tests/same_burst.txt --alg SJF
+./sched tests/rr_quantum.txt --alg RR --q 1
+./sched tests/srtf_preempt.txt --alg SRTF
 ```
 
 Invalid input test:
 
 ```sh
-./sched tests/workloads/invalid_workload.txt --alg FCFS
+./sched tests/invalid_workload.txt --alg FCFS
 ```
 
 This test is expected to fail with a clear error message and a non-zero exit code.
@@ -149,7 +190,7 @@ This test is expected to fail with a clear error message and a non-zero exit cod
 Priority scheduling test:
 
 ```sh
-./sched tests/workloads/priority_aging.txt --alg PRIORITY
+./sched tests/priority_aging.txt --alg PRIORITY
 ```
 
 | Test file | Purpose |

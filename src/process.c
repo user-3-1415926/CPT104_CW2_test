@@ -18,6 +18,7 @@ int ready_tie_less(const Process *a, const Process *b) {
     if (a->arrival != b->arrival) {
         return a->arrival < b->arrival;
     }
+    // use PID as the last deterministic tie breaker
     return strcmp(a->pid, b->pid) < 0;
 }
 
@@ -28,6 +29,8 @@ Process *copy_processes(const Process *processes, int n) {
     }
 
     memcpy(p, processes, (size_t)n * sizeof(Process));
+
+    // reset scheduling fields before running an algorithm
     for (int i = 0; i < n; i++) {
         p[i].remaining = p[i].burst;
         p[i].started = 0;
