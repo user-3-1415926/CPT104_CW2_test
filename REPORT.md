@@ -7,29 +7,29 @@
 ```text
 .
 ├── src
-│   ├── main.c                 - program entry point
-│   ├── process.c/h            - process data structure and helper functions
-│   ├── parser.c/h             - workload txt input and validation
-│   ├── scheduler.c/h          - algorithm selection and shared scheduler helpers
-│   ├── gantt.c/h              - Gantt chart timeline structure and output
-│   ├── metrics.c/h            - waiting, turnaround, response and CPU statistics
-│   ├── cli.c/h                - command-line input handling
+│   ├── main.c
+│   ├── process.c/h            - process data
+│   ├── parser.c/h             - input parsing
+│   ├── scheduler.c/h          - algorithm selection
+│   ├── gantt.c/h              - Gantt chart
+│   ├── metrics.c/h            - metric calculation
+│   ├── cli.c/h                - command-line options
 │   └── algorithm/
-│       ├── fcfs.c/h           - FCFS implementation
-│       ├── sjf.c/h            - SJF implementation
-│       ├── srtf.c/h           - SRTF implementation
-│       ├── rr.c/h             - Round Robin implementation
-│       └── priority.c/h       - Priority scheduling with aging
+│       ├── fcfs.c/h
+│       ├── sjf.c/h
+│       ├── srtf.c/h
+│       ├── rr.c/h
+│       └── priority.c/h       - priority with aging
 ├── tests
-│   ├── test_runner.c          - small automated test runner
-│   ├── basic.txt              - normal scheduling workload
-│   ├── idle.txt               - workload with CPU idle time
-│   ├── same_arrival.txt       - same-arrival workload
-│   ├── same_burst.txt         - same-burst workload
-│   ├── rr_quantum.txt         - Round Robin quantum workload
-│   ├── srtf_preempt.txt       - SRTF preemption workload
-│   ├── invalid_workload.txt   - invalid input workload
-│   └── priority_aging.txt     - priority aging workload
+│   ├── test_runner.c          - automated tests
+│   ├── basic.txt
+│   ├── idle.txt
+│   ├── same_arrival.txt
+│   ├── same_burst.txt
+│   ├── rr_quantum.txt
+│   ├── srtf_preempt.txt
+│   ├── invalid_workload.txt
+│   └── priority_aging.txt
 ├── README.md
 ├── REPORT.md
 └── Makefile
@@ -39,10 +39,11 @@
 
 My understanding:
 
-- FCFS is the most direct scheduling rule in this simulator.
-- The earliest arrived ready process is selected first.
-- After selection, the process keeps the CPU until its burst is complete.
-- This makes the result simple to trace, but it can perform badly when a long process arrives before several short ones.
+- FCFS is a simple non-preemptive scheduling rule.
+- In my view, it works like a simple queue: the process that arrives first gets served first.
+- After a process starts running, it keeps the CPU until its burst is complete.
+- This makes the result simple to trace.
+- Its weakness is the convoy effect, where one long process near the front can delay several shorter processes behind it.
 
 In my program:
 
@@ -57,9 +58,10 @@ In my program:
 My understanding:
 
 - SJF is non-preemptive, but its choice is based on burst length instead of only arrival order.
-- When the CPU is free, the shortest ready job is preferred.
-- This can lower the average waiting time because small jobs are less likely to sit behind long jobs.
-- The weakness is that SJF cannot stop a process once it has started, even if a shorter process arrives later.
+- When the CPU becomes available, I understand it as choosing the ready process with the smallest burst time.
+- This can lower the average waiting time because short jobs can finish without waiting behind larger jobs.
+- The weakness is that SJF cannot stop a running process, even if a shorter one arrives later.
+- A long process may also be delayed for a long time if shorter jobs are always ready.
 
 In my program:
 
@@ -74,9 +76,9 @@ In my program:
 My understanding:
 
 - SRTF is the preemptive form of shortest-job scheduling.
-- Instead of comparing original burst time only, it compares remaining time.
-- A newly arrived process can preempt the current one if it has less work left.
-- This is useful for response and waiting time of short jobs, but it can increase the number of process changes.
+- Instead of using the original burst time only, it keeps checking how much time each ready process still needs.
+- If a new process arrives with less remaining work than the current process, the CPU can switch to the new process.
+- This can help short jobs get a faster response, but it also makes process changes more frequent.
 
 In my program:
 
@@ -91,11 +93,12 @@ In my program:
 
 My understanding:
 
-- Round Robin uses a ready queue and a fixed time quantum.
-- Each process at the front of the queue gets a limited CPU turn.
+- Round Robin is preemptive and gives processes turns using a fixed time quantum.
+- The ready queue decides the order, and the front process gets one limited CPU turn.
 - If it finishes during the quantum, it leaves the queue.
 - If it still has remaining time, it is placed back at the tail.
-- This makes the algorithm fair, although a very small quantum can create many switches.
+- This makes the CPU sharing feel fairer, although a very small quantum can create many switches.
+- If the quantum is very large, the behaviour becomes close to FCFS because processes may finish before being interrupted.
 
 In my program:
 
@@ -305,7 +308,7 @@ This checks:
 
 ### Automated Checking
 
-I designed a small C test runner in `tests/test_runner.c`.
+I designed a C test runner in `tests/test_runner.c`.
 
 - `check_gantt_line()` checks that the Gantt chart order matches the expected timeline.
 - `check_summary_value()` checks summary values including `AVG_WAIT`, `AVG_TAT`, `AVG_RESP`, `CONTEXT_SWITCHES`, and `CPU_UTIL`.
@@ -317,37 +320,41 @@ The test runner can be executed with:
 make test
 ```
 
-### Metric Example
+### Individual Checking
 
 I used hand calculation to verify selected metric values from the program output.
 
-The method was:
-
 - Read `Arrival`, `Burst`, `Start`, and `Finish` from the output table.
-- Calculate `Response = Start - Arrival`.
-- Calculate `Turnaround = Finish - Arrival`.
-- Calculate `Waiting = Turnaround - Burst`.
-- Calculate `CPU_UTIL = total busy time / makespan * 100%`.
+- `Response = Start - Arrival`.
+- `Turnaround = Finish - Arrival`.
+- `Waiting = Turnaround - Burst`.
+- `CPU_UTIL = total busy time / makespan * 100%`.
 - Compare these hand calculations with the values printed by the program.
 
 This helped confirm that the Gantt chart order and the computed metrics were consistent.
 
+After running these tests, I checked the Gantt chart order and manually verified selected metric values using hand calculations.
+
 ### Observations
 
-- In `basic.txt`, SJF gives a lower average waiting time than FCFS because it runs the shortest ready job after `P1`.
-- In `srtf_preempt.txt`, SRTF lets short jobs finish earlier, but the Gantt chart has more process changes.
-- In `rr_quantum.txt` with `q=1`, Round Robin gives quick first responses, but it creates many context switches.
-- Priority scheduling depends strongly on the priority values, and aging helps waiting processes become more competitive.
+- In `basic.txt`, FCFS can show the convoy effect from the lecture because a long early process may make shorter later processes wait.
+- In `basic.txt`, SJF gives a lower average waiting time than FCFS because it chooses the shortest ready burst after `P1`.
+- In `srtf_preempt.txt`, SRTF lets short jobs respond earlier by preempting a longer running process, but the Gantt chart has more process changes.
+- In `rr_quantum.txt` with `q=1`, Round Robin gives quick first CPU access, but the small quantum creates many context switches.
+- If the Round Robin quantum is very large, the result becomes closer to FCFS. If the quantum is too small, context switch overhead becomes more obvious.
+- Priority scheduling can cause low-priority processes to wait for a long time, so aging helps reduce starvation by making waiting processes more competitive.
 
 ## 3 AI Usage Declaration
 
-I used Codex as a supporting tool during this coursework.
+I used Codex and ChatGPT as supporting tools during this coursework.
 
 AI helped me with:
 
-- Debugging directions.
-- Edge-case workload ideas.
-- Code logic review.
+- Suggestions for improving parts of my code.
+- Finding possible weaknesses in my implementation.
+- Debugging directions when I was unsure how to locate a problem.
+- Edge-case workload ideas for testing.
+- Code logic review and advice for parts I did not fully understand.
 - Report clarity and wording.
 
 The design, implementation decisions, and final verification were completed by me. I verified the program myself by:

@@ -7,29 +7,29 @@ This project implements a CPU scheduling simulator in C for CPT104 Coursework 2.
 ```text
 .
 ├── src
-│   ├── main.c                 - program entry point
-│   ├── process.c/h            - process data structure and helper functions
-│   ├── parser.c/h             - workload txt input and validation
-│   ├── scheduler.c/h          - algorithm selection and shared scheduler helpers
-│   ├── gantt.c/h              - Gantt chart timeline structure and output
-│   ├── metrics.c/h            - waiting, turnaround, response and CPU statistics
-│   ├── cli.c/h                - command-line input handling
+│   ├── main.c
+│   ├── process.c/h            - process data
+│   ├── parser.c/h             - input parsing
+│   ├── scheduler.c/h          - algorithm selection
+│   ├── gantt.c/h              - Gantt chart
+│   ├── metrics.c/h            - metric calculation
+│   ├── cli.c/h                - command-line options
 │   └── algorithm/
-│       ├── fcfs.c/h           - FCFS implementation
-│       ├── sjf.c/h            - SJF implementation
-│       ├── srtf.c/h           - SRTF implementation
-│       ├── rr.c/h             - Round Robin implementation
-│       └── priority.c/h       - Priority scheduling with aging
+│       ├── fcfs.c/h
+│       ├── sjf.c/h
+│       ├── srtf.c/h
+│       ├── rr.c/h
+│       └── priority.c/h       - priority with aging
 ├── tests
-│   ├── test_runner.c          - small automated test runner
-│   ├── basic.txt              - normal scheduling workload
-│   ├── idle.txt               - workload with CPU idle time
-│   ├── same_arrival.txt       - same-arrival workload
-│   ├── same_burst.txt         - same-burst workload
-│   ├── rr_quantum.txt         - Round Robin quantum workload
-│   ├── srtf_preempt.txt       - SRTF preemption workload
-│   ├── invalid_workload.txt   - invalid input workload
-│   └── priority_aging.txt     - priority aging workload
+│   ├── test_runner.c          - automated tests
+│   ├── basic.txt
+│   ├── idle.txt
+│   ├── same_arrival.txt
+│   ├── same_burst.txt
+│   ├── rr_quantum.txt
+│   ├── srtf_preempt.txt
+│   ├── invalid_workload.txt
+│   └── priority_aging.txt
 ├── README.md
 ├── REPORT.md
 └── Makefile
@@ -141,6 +141,14 @@ total CPU busy time / makespan * 100%
 ```
 
 where makespan is the end time of the last Gantt segment.
+
+The per-process metrics use:
+
+```text
+Turnaround = Finish - Arrival
+Response = Start - Arrival
+Waiting = Turnaround - Burst
+```
 
 ## Testing
 
